@@ -1,4 +1,5 @@
 #include "Application.h"
+#include "Physics/Constants.h"
 
 bool Application::IsRunning()
 {
@@ -12,7 +13,9 @@ void Application::Setup()
 {
   running = Graphics::OpenWindow();
 
-  // TODO: setup objects in the scene
+  particle = new Particle(50,800,1.0);
+  particle->velocity = Vec2(250,-15 * PIXELS_PER_METER);
+  particle->acceleration = Vec2(0, 9.8 * PIXELS_PER_METER);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -41,7 +44,18 @@ void Application::Input()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Update()
 {
-  // TODO: update all objects in the scene
+  static int timePreviousFrame;
+  int timeToWait = FRAME_RATE - (SDL_GetTicks() - timePreviousFrame);
+  if (timeToWait > 0 && timeToWait <= FRAME_RATE) {
+    SDL_Delay(timeToWait);
+  }
+  float deltaTime = (SDL_GetTicks() - timePreviousFrame) / 1000.0f;
+  if (deltaTime > 0.016){
+    deltaTime = 0.016;
+  }
+  timePreviousFrame = SDL_GetTicks();
+
+  particle->Update(deltaTime);
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -49,8 +63,8 @@ void Application::Update()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Render()
 {
-  Graphics::ClearScreen(0xFF056263);
-  Graphics::DrawFillCircle(200, 200, 40, 0xFFFFFFFF);
+  Graphics::ClearScreen(0xFF222222);
+  Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius*2, 0xFFFFFFFF);
   Graphics::RenderFrame();
 }
 
@@ -59,7 +73,7 @@ void Application::Render()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy()
 {
-  // TODO: destroy all objects in the scene
+  delete particle;
 
   Graphics::CloseWindow();
 }
