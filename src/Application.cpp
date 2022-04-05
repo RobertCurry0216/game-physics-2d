@@ -1,5 +1,7 @@
 #include "Application.h"
 #include "Physics/Constants.h"
+#include "Physics/Force.h"
+#include <vector>
 
 bool Application::IsRunning()
 {
@@ -13,9 +15,19 @@ void Application::Setup()
 {
   running = Graphics::OpenWindow();
 
-  particle = new Particle(50,800,1.0);
-  particle->velocity = Vec2(250,-15 * PIXELS_PER_METER);
-  particle->acceleration = Vec2(0, 9.8 * PIXELS_PER_METER);
+  Particle* smallBall = new Particle(200, 100, 1.0);
+  smallBall->radius = 4;
+  particles.push_back(smallBall);
+
+  Particle* bigBall = new Particle(400, 100, 3.0);
+  bigBall->radius = 12;
+  particles.push_back(bigBall);
+
+
+  fluid.x = 0;
+  fluid.y = Graphics::Height() / 2;
+  fluid.w = Graphics::Width();
+  fluid.h = Graphics::Height() / 2;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -34,6 +46,33 @@ void Application::Input()
     case SDL_KEYDOWN:
       if (event.key.keysym.sym == SDLK_ESCAPE)
         running = false;
+      if (event.key.keysym.sym == SDLK_UP)
+        pushForce.y = -50 * PIXELS_PER_METER;
+      if (event.key.keysym.sym == SDLK_DOWN)
+        pushForce.y = 50 * PIXELS_PER_METER;
+      if (event.key.keysym.sym == SDLK_LEFT)
+        pushForce.x = -50 * PIXELS_PER_METER;
+      if (event.key.keysym.sym == SDLK_RIGHT)
+        pushForce.x = 50 * PIXELS_PER_METER;
+      break;
+    case SDL_KEYUP:
+      if (event.key.keysym.sym == SDLK_UP)
+        pushForce.y = 0;
+      if (event.key.keysym.sym == SDLK_DOWN)
+        pushForce.y = 0;
+      if (event.key.keysym.sym == SDLK_LEFT)
+        pushForce.x = 0;
+      if (event.key.keysym.sym == SDLK_RIGHT)
+        pushForce.x = 0;
+      break;
+    case SDL_MOUSEBUTTONDOWN:
+      int x, y;
+      SDL_GetMouseState(&x, &y);
+      mousePosition = Vec2(x, y);
+      mouseDown = true;
+      break;
+    case SDL_MOUSEBUTTONUP:
+      mouseDown = false;
       break;
     }
   }
@@ -46,16 +85,60 @@ void Application::Update()
 {
   static int timePreviousFrame;
   int timeToWait = FRAME_RATE - (SDL_GetTicks() - timePreviousFrame);
-  if (timeToWait > 0 && timeToWait <= FRAME_RATE) {
+  if (timeToWait > 0 && timeToWait <= FRAME_RATE)
+  {
     SDL_Delay(timeToWait);
   }
   float deltaTime = (SDL_GetTicks() - timePreviousFrame) / 1000.0f;
-  if (deltaTime > 0.016){
+  if (deltaTime > 0.016)
+  {
     deltaTime = 0.016;
   }
   timePreviousFrame = SDL_GetTicks();
 
-  particle->Update(deltaTime);
+  // apply forces
+  for (auto particle: particles) {
+    // weight force
+    // Vec2 weight = Vec2(0, particle->mass * 9.8 * PIXELS_PER_METER);
+    // particle->AddForce(weight);
+
+    // push force
+    particle->AddForce(pushForce);
+
+    // mouse
+    if (mouseDown) {
+      Vec2 towardsMouse = mousePosition - particle->position;
+      particle->AddForce(towardsMouse*PIXELS_PER_METER);
+    }
+
+    // drag force
+    if (particle->position.y >= fluid.y) {
+      Vec2 drag = Force::GenerateDragForce(*particle, 0.01);
+      particle->AddForce(drag);
+    }
+
+    // friction force
+    Vec2 friction = Force::GenerateFrictionForce(*particle, 10 * PIXELS_PER_METER);
+    particle->AddForce(friction);
+  }
+
+  // update particles
+  for (auto particle: particles) {
+    particle->Integrate(deltaTime);
+  }
+
+  // dirty keep in bounds
+  for (auto particle: particles) {
+    if (particle->position.x < particle->radius || particle->position.x >= Graphics::Width() - particle->radius)
+    {
+      particle->velocity.x *= -1;
+    }
+
+    if (particle->position.y < particle->radius || particle->position.y >= Graphics::Height() - particle->radius)
+    {
+      particle->velocity.y *= -1;
+    }
+  }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -64,7 +147,20 @@ void Application::Update()
 void Application::Render()
 {
   Graphics::ClearScreen(0xFF222222);
-  Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius*2, 0xFFFFFFFF);
+
+  //draw fluid
+  Graphics::DrawFillRect(
+    fluid.x + fluid.w/2,
+    fluid.y + fluid.h/2,
+    fluid.w,
+    fluid.h,
+    0xFF6E2713
+  );
+
+  //draw particles
+  for (auto particle: particles) {
+    Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius * 2, 0xFFFFFFFF);
+  }
   Graphics::RenderFrame();
 }
 
@@ -73,7 +169,9 @@ void Application::Render()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Destroy()
 {
-  delete particle;
+  for (auto particle: particles) {
+    delete particle;
+  }
 
   Graphics::CloseWindow();
 }

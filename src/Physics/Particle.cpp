@@ -6,23 +6,28 @@
 Particle::Particle(float x, float y, float mass) {
   this->position = Vec2(x, y);
   this->mass = mass;
-
-  std::cout << "Particle constructor called" << std::endl;
+  if (mass != 0.0) {
+    this->invMass = 1.0 / mass;
+  } else {
+    this->invMass = 0.0;
+  }
 };
 
 Particle::~Particle() {
-  std::cout << "Particle destructor called" << std::endl;
 }
 
-void Particle::Update(float deltaTime) {
-  velocity += acceleration * deltaTime;
-  position += (velocity * deltaTime);
+void Particle::Integrate(float dt) {
+  acceleration = sumForces * invMass;
+  velocity += acceleration * dt;
+  position += velocity * dt;
 
-  if (position.x < radius || position.x >= Graphics::Width() - radius) {
-    velocity.x *= -1;
-  }
+  ClearForces();
+}
 
-  if (position.y < radius || position.y >= Graphics::Height() - radius) {
-    velocity.y *= -1;
-  }
+void Particle::AddForce(const Vec2& force) {
+  sumForces += force;
+}
+
+void Particle::ClearForces(void) {
+  sumForces = Vec2();
 }
