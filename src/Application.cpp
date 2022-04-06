@@ -15,13 +15,21 @@ void Application::Setup()
 {
   running = Graphics::OpenWindow();
 
-  Particle* smallBall = new Particle(200, 100, 1.0);
-  smallBall->radius = 4;
-  particles.push_back(smallBall);
+  Particle* ball = new Particle(200, 100, 1.0);
+  ball->radius = 4;
+  particles.push_back(ball);
 
-  Particle* bigBall = new Particle(400, 100, 3.0);
-  bigBall->radius = 12;
-  particles.push_back(bigBall);
+  Particle* ball2 = new Particle(300, 100, 1.0);
+  ball2->radius = 4;
+  particles.push_back(ball2);
+
+  Particle* ball3 = new Particle(300, 200, 1.0);
+  ball3->radius = 4;
+  particles.push_back(ball3);
+
+  Particle* ball4 = new Particle(200, 200, 1.0);
+  ball4->radius = 4;
+  particles.push_back(ball4);
 
   fluid.x = 0;
   fluid.y = Graphics::Height() / 2;
@@ -113,14 +121,15 @@ void Application::Update()
     // drag force
     Vec2 drag = Force::GenerateDragForce(*particle, 0.001);
     particle->AddForce(drag);
+  }
 
-    //spring force
-    Vec2 spring = Force::GenerateSpringForce(*particle, Vec2(Graphics::Width()/2, 50), 200, 100);
-    particle->AddForce(spring);
-
-    // friction force
-    //Vec2 friction = Force::GenerateFrictionForce(*particle, 10 * PIXELS_PER_METER);
-    //particle->AddForce(friction);
+  for (int i = 0; i < particles.size(); i++) {
+    for (int j = 0; j < particles.size(); j++) {
+      if (i != j) {
+        Vec2 springForce = Force::GenerateSpringForce(*particles[i], *particles[j], 100, 1000);
+        particles[i]->AddForce(springForce);
+      }
+    }
   }
 
   // update particles
@@ -161,8 +170,14 @@ void Application::Render()
   //draw particles
   for (auto particle: particles) {
     Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius * 2, 0xFFFFFFFF);
-    //draw spring
-    Graphics::DrawLine(particle->position.x, particle->position.y, Graphics::Width()/2, 50, 0xFF0000FF);
+  }
+
+  for (int i = 0; i < particles.size(); i++) {
+    for (int j = 0; j < particles.size(); j++) {
+      if (i != j) {
+        Graphics::DrawLine(particles[i]->position.x, particles[i]->position.y, particles[j]->position.x, particles[j]->position.y, 0xFF0000FF);
+      }
+    }
   }
 
 
