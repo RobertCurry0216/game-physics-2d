@@ -23,7 +23,6 @@ void Application::Setup()
   bigBall->radius = 12;
   particles.push_back(bigBall);
 
-
   fluid.x = 0;
   fluid.y = Graphics::Height() / 2;
   fluid.w = Graphics::Width();
@@ -99,8 +98,8 @@ void Application::Update()
   // apply forces
   for (auto particle: particles) {
     // weight force
-    // Vec2 weight = Vec2(0, particle->mass * 9.8 * PIXELS_PER_METER);
-    // particle->AddForce(weight);
+    Vec2 weight = Vec2(0, particle->mass * 9.8 * PIXELS_PER_METER);
+    particle->AddForce(weight);
 
     // push force
     particle->AddForce(pushForce);
@@ -112,14 +111,16 @@ void Application::Update()
     }
 
     // drag force
-    if (particle->position.y >= fluid.y) {
-      Vec2 drag = Force::GenerateDragForce(*particle, 0.01);
-      particle->AddForce(drag);
-    }
+    Vec2 drag = Force::GenerateDragForce(*particle, 0.001);
+    particle->AddForce(drag);
+
+    //spring force
+    Vec2 spring = Force::GenerateSpringForce(*particle, Vec2(Graphics::Width()/2, 50), 200, 100);
+    particle->AddForce(spring);
 
     // friction force
-    Vec2 friction = Force::GenerateFrictionForce(*particle, 10 * PIXELS_PER_METER);
-    particle->AddForce(friction);
+    //Vec2 friction = Force::GenerateFrictionForce(*particle, 10 * PIXELS_PER_METER);
+    //particle->AddForce(friction);
   }
 
   // update particles
@@ -149,18 +150,22 @@ void Application::Render()
   Graphics::ClearScreen(0xFF222222);
 
   //draw fluid
-  Graphics::DrawFillRect(
-    fluid.x + fluid.w/2,
-    fluid.y + fluid.h/2,
-    fluid.w,
-    fluid.h,
-    0xFF6E2713
-  );
+  // Graphics::DrawFillRect(
+  //   fluid.x + fluid.w/2,
+  //   fluid.y + fluid.h/2,
+  //   fluid.w,
+  //   fluid.h,
+  //   0xFF6E2713
+  // );
 
   //draw particles
   for (auto particle: particles) {
     Graphics::DrawFillCircle(particle->position.x, particle->position.y, particle->radius * 2, 0xFFFFFFFF);
+    //draw spring
+    Graphics::DrawLine(particle->position.x, particle->position.y, Graphics::Width()/2, 50, 0xFF0000FF);
   }
+
+
   Graphics::RenderFrame();
 }
 
@@ -172,6 +177,5 @@ void Application::Destroy()
   for (auto particle: particles) {
     delete particle;
   }
-
   Graphics::CloseWindow();
 }
