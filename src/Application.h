@@ -6,6 +6,7 @@
 #include "./Graphics.h"
 #include "./Physics/Body.h"
 #include "./Physics/Vec2.h"
+#include "./Physics/Contact.h"
 
 class Application
 {

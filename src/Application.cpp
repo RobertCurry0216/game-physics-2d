@@ -2,6 +2,7 @@
 #include "Physics/Constants.h"
 #include "Physics/Force.h"
 #include "Physics/CollisionDetection.h"
+#include "Physics/Contact.h"
 #include <vector>
 
 bool Application::IsRunning()
@@ -63,15 +64,21 @@ void Application::Input()
       if (event.key.keysym.sym == SDLK_RIGHT)
         pushForce.x = 0;
       break;
-    case SDL_MOUSEBUTTONDOWN:
+    case SDL_MOUSEMOTION:
       int x, y;
       SDL_GetMouseState(&x, &y);
-      mousePosition = Vec2(x, y);
-      mouseDown = true;
+      bodies[0]->position.x = x;
+      bodies[0]->position.y = y;
       break;
-    case SDL_MOUSEBUTTONUP:
-      mouseDown = false;
-      break;
+    // case SDL_MOUSEBUTTONDOWN:
+    //   int x, y;
+    //   SDL_GetMouseState(&x, &y);
+    //   mousePosition = Vec2(x, y);
+    //   mouseDown = true;
+    //   break;
+    // case SDL_MOUSEBUTTONUP:
+    //   mouseDown = false;
+    //   break;
     }
   }
 }
@@ -81,6 +88,8 @@ void Application::Input()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Update()
 {
+  Graphics::ClearScreen(0xFF222222);
+
   static int timePreviousFrame;
   int timeToWait = FRAME_RATE - (SDL_GetTicks() - timePreviousFrame);
   if (timeToWait > 0 && timeToWait <= FRAME_RATE)
@@ -97,21 +106,21 @@ void Application::Update()
   // apply forces
   for (auto body: bodies) {
     // weight force
-    Vec2 weight = Vec2(0, body->mass * 9.8 * PIXELS_PER_METER);
-    body->AddForce(weight);
+    // Vec2 weight = Vec2(0, body->mass * 9.8 * PIXELS_PER_METER);
+    // body->AddForce(weight);
 
     // push force
-    body->AddForce(pushForce);
+    //body->AddForce(pushForce);
 
     // mouse
-    if (mouseDown) {
-      Vec2 towardsMouse = mousePosition - body->position;
-      body->AddForce(towardsMouse*PIXELS_PER_METER);
-    }
+    // if (mouseDown) {
+    //   Vec2 towardsMouse = mousePosition - body->position;
+    //   body->AddForce(towardsMouse*PIXELS_PER_METER);
+    // }
 
     // drag force
-    Vec2 drag = Force::GenerateDragForce(*body, 0.001);
-    body->AddForce(drag);
+    // Vec2 drag = Force::GenerateDragForce(*body, 0.001);
+    // body->AddForce(drag);
 
     //torque
     //body->AddTorque(200);
@@ -138,7 +147,13 @@ void Application::Update()
       Body* b = bodies[j];
       a->isColliding = false;
       b->isColliding = false;
-      if (CollisionDetection::IsColliding(a,b)) {
+      Contact contact;
+      if (CollisionDetection::IsColliding(a, b, contact)) {
+
+        Graphics::DrawFillCircle(contact.start.x, contact.start.y, 3, 0xFFFF00FF);
+        Graphics::DrawFillCircle(contact.end.x, contact.end.y, 3, 0xFFFF00FF);
+        Graphics::DrawLine(contact.start.x, contact.start.y, contact.end.x, contact.end.y, 0xFFFF00FF);
+
         a->isColliding = true;
         b->isColliding = true;
       }
@@ -179,7 +194,6 @@ void Application::Update()
 ///////////////////////////////////////////////////////////////////////////////
 void Application::Render()
 {
-  Graphics::ClearScreen(0xFF222222);
 
   for (auto body: bodies) {
     Uint32 color = body->isColliding ? 0xFF0000FF : 0xFFFFFFFF;
