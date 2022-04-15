@@ -15,8 +15,8 @@ void Application::Setup()
 {
   running = Graphics::OpenWindow();
 
-  Body* ball = new Body(CircleShape(50), 200, 100, 1.0);
-  bodies.push_back(ball);
+  Body* box = new Body(BoxShape(200, 100), 400, 400, 1.0);
+  bodies.push_back(box);
 
   fluid.x = 0;
   fluid.y = Graphics::Height() / 2;
@@ -93,8 +93,8 @@ void Application::Update()
   // apply forces
   for (auto Body: bodies) {
     // weight force
-    Vec2 weight = Vec2(0, Body->mass * 9.8 * PIXELS_PER_METER);
-    Body->AddForce(weight);
+    // Vec2 weight = Vec2(0, Body->mass * 9.8 * PIXELS_PER_METER);
+    // Body->AddForce(weight);
 
     // push force
     Body->AddForce(pushForce);
@@ -108,6 +108,9 @@ void Application::Update()
     // drag force
     Vec2 drag = Force::GenerateDragForce(*Body, 0.001);
     Body->AddForce(drag);
+
+    //torque
+    Body->AddTorque(200);
   }
 
   for (int i = 0; i < bodies.size(); i++) {
@@ -121,7 +124,7 @@ void Application::Update()
 
   // update bodies
   for (auto body: bodies) {
-    body->Integrate(deltaTime);
+    body->Update(deltaTime);
   }
 
   // dirty keep in bounds
@@ -148,9 +151,12 @@ void Application::Render()
   for (auto body: bodies) {
     if (body->shape->GetType() == CIRCLE) {
       CircleShape* circleShape = (CircleShape*) body->shape;
-      Graphics::DrawCircle(body->position.x, body->position.y, circleShape->radius, 0.0, 0xFFFFFFFF);
-    } else {
-      //TODO
+      Graphics::DrawCircle(body->position.x, body->position.y, circleShape->radius, body->rotation, 0xFFFFFFFF);
+    }
+
+    if (body->shape->GetType() == BOX) {
+      BoxShape* boxShape = (BoxShape*) body->shape;
+      Graphics::DrawPolygon(body->position.x, body->position.y, boxShape->worldVerticies, 0xFFFFFFFF);
     }
   }
 
