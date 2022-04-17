@@ -16,6 +16,9 @@ struct Contact {
 
   Contact() = default;
   ~Contact() = default;
+
+  void ResolvePenetration(void);
+  void ResolveCollision(void);
 };
 
 #endif

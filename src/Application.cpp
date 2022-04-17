@@ -17,11 +17,8 @@ void Application::Setup()
 {
   running = Graphics::OpenWindow();
 
-  Body* bigBall = new Body(CircleShape(200), 400, 400, 1.0);
+  Body* bigBall = new Body(CircleShape(200), Graphics::Width()/2, Graphics::Height()/2, 0.0);
   bodies.push_back(bigBall);
-
-  Body* smallBall = new Body(CircleShape(50), 700, 400, 1.0);
-  bodies.push_back(smallBall);
 
   fluid.x = 0;
   fluid.y = Graphics::Height() / 2;
@@ -64,12 +61,12 @@ void Application::Input()
       if (event.key.keysym.sym == SDLK_RIGHT)
         pushForce.x = 0;
       break;
-    case SDL_MOUSEMOTION:
-      int x, y;
-      SDL_GetMouseState(&x, &y);
-      bodies[0]->position.x = x;
-      bodies[0]->position.y = y;
-      break;
+    // case SDL_MOUSEMOTION:
+    //   int x, y;
+    //   SDL_GetMouseState(&x, &y);
+    //   bodies[0]->position.x = x;
+    //   bodies[0]->position.y = y;
+    //   break;
     // case SDL_MOUSEBUTTONDOWN:
     //   int x, y;
     //   SDL_GetMouseState(&x, &y);
@@ -79,6 +76,13 @@ void Application::Input()
     // case SDL_MOUSEBUTTONUP:
     //   mouseDown = false;
     //   break;
+    case SDL_MOUSEBUTTONDOWN:
+      int x, y;
+      SDL_GetMouseState(&x, &y);
+      Body* smallBall = new Body(CircleShape(50), x, y, 1.0);
+      smallBall->restitution = 0.95;
+      bodies.push_back(smallBall);
+      break;
     }
   }
 }
@@ -106,8 +110,8 @@ void Application::Update()
   // apply forces
   for (auto body: bodies) {
     // weight force
-    // Vec2 weight = Vec2(0, body->mass * 9.8 * PIXELS_PER_METER);
-    // body->AddForce(weight);
+    Vec2 weight = Vec2(0, body->mass * 9.8 * PIXELS_PER_METER);
+    body->AddForce(weight);
 
     // push force
     //body->AddForce(pushForce);
@@ -119,8 +123,8 @@ void Application::Update()
     // }
 
     // drag force
-    // Vec2 drag = Force::GenerateDragForce(*body, 0.001);
-    // body->AddForce(drag);
+    Vec2 drag = Force::GenerateDragForce(*body, 0.001);
+    body->AddForce(drag);
 
     //torque
     //body->AddTorque(200);
@@ -145,17 +149,13 @@ void Application::Update()
     for (int j = i+1; j < bodies.size(); j++) {
       Body* a = bodies[i];
       Body* b = bodies[j];
-      a->isColliding = false;
-      b->isColliding = false;
       Contact contact;
       if (CollisionDetection::IsColliding(a, b, contact)) {
-
         Graphics::DrawFillCircle(contact.start.x, contact.start.y, 3, 0xFFFF00FF);
         Graphics::DrawFillCircle(contact.end.x, contact.end.y, 3, 0xFFFF00FF);
         Graphics::DrawLine(contact.start.x, contact.start.y, contact.end.x, contact.end.y, 0xFFFF00FF);
 
-        a->isColliding = true;
-        b->isColliding = true;
+        contact.ResolveCollision();
       }
     }
   }
@@ -196,7 +196,8 @@ void Application::Render()
 {
 
   for (auto body: bodies) {
-    Uint32 color = body->isColliding ? 0xFF0000FF : 0xFFFFFFFF;
+    //Uint32 color = body->isColliding ? 0xFF0000FF : 0xFFFFFFFF;
+    Uint32 color = 0xFFFFFFFF;
 
     if (body->shape->GetType() == CIRCLE) {
       CircleShape* circleShape = (CircleShape*) body->shape;

@@ -3,6 +3,7 @@
 #include "Shape.h"
 #include "../Graphics.h"
 #include <iostream>
+#include <math.h>
 
 Body::Body(const Shape& shape, float x, float y, float mass) {
   this->shape = shape.Clone();
@@ -14,6 +15,7 @@ Body::Body(const Shape& shape, float x, float y, float mass) {
   this->angularVelocity = 0.0;
   this->sumForces = Vec2(0,0);
   this->sumTorque = 0.0;
+  this->restitution = 1.0;
   this->mass = mass;
   if (mass != 0.0) {
     this->invMass = 1.0 / mass;
@@ -32,7 +34,15 @@ Body::~Body() {
   delete shape;
 }
 
+bool Body::IsStatic() const {
+  const float epsilon = 0.001f;
+  return fabs(invMass) <= epsilon;
+}
+
 void Body::IntegrateLinear(float dt) {
+  if (IsStatic()) {
+    return;
+  }
   acceleration = sumForces * invMass;
   velocity += acceleration * dt;
   position += velocity * dt;
@@ -49,6 +59,10 @@ void Body::ClearForces(void) {
 }
 
 void Body::IntegrateAngular(float dt) {
+  if (IsStatic()) {
+    return;
+  }
+
   angularAcceleration = sumTorque * invI;
   angularVelocity += angularAcceleration * dt;
   rotation += angularVelocity * dt;
@@ -72,4 +86,11 @@ void Body::Update(float dt) {
     PolygonShape* polygon = (PolygonShape*) shape;
     polygon->UpdateVerticies(rotation, position);
   }
+}
+
+void Body::ApplyImpulse(const Vec2& j) {
+  if (IsStatic()) {
+    return;
+  }
+  velocity += j * invMass;
 }
