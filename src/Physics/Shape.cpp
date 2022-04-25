@@ -1,5 +1,7 @@
 #include "Shape.h"
 
+#include <limits>
+
 //////////////////////////////////////////////////////
 // circle
 //////////////////////////////////////////////////////
@@ -47,6 +49,12 @@ float PolygonShape::GetMomentOfInertia(float mass) const {
   return 1;
 }
 
+Vec2 PolygonShape::EdgeAt(int index) const {
+  int currVertex = index;
+  int nextVertex = (index + 1) % worldVerticies.size();
+  return worldVerticies[nextVertex] - worldVerticies[currVertex];
+}
+
 void PolygonShape::UpdateVerticies(float angle, const Vec2& position) {
   for (int i=0; i<localVerticies.size(); i++) {
     // rotate
@@ -55,6 +63,42 @@ void PolygonShape::UpdateVerticies(float angle, const Vec2& position) {
     //translate
     worldVerticies[i] += position;
   }
+}
+
+float PolygonShape::FindMinSeparation(const PolygonShape* other, Vec2& axis, Vec2& point) const {
+  float separation = std::numeric_limits<float>::lowest();
+
+  // loop all verticies of a
+  for (int i=0; i < worldVerticies.size(); i++) {
+    // find the normal (perpendicular)
+    Vec2 va = worldVerticies[i];
+    Vec2 normal = EdgeAt(i).Normal();
+
+    // track minimum seperation
+    float minSep = std::numeric_limits<float>::max();
+    Vec2 minVertex;
+
+    // loop all verticies of b
+    for (int j=0; j < other->worldVerticies.size(); j++) {
+      Vec2 vb = other->worldVerticies[j];
+
+      // project vertix of b onto the normal
+      float proj = (vb - va).Dot(normal);
+      if (proj < minSep) {
+        minVertex = vb;
+        minSep = proj;
+      }
+    }
+
+    if (minSep > separation) {
+      separation = minSep;
+      axis = EdgeAt(i);
+      point = minVertex;
+    }
+  }
+
+  // return the best separation
+  return separation;
 }
 
 
